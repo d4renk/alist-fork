@@ -14,6 +14,7 @@ type Addition struct {
 	CaptchaToken     string `json:"captcha_token" default:""`
 	DeviceID         string `json:"device_id"  required:"false" default:""`
 	DisableMediaLink bool   `json:"disable_media_link" default:"true"`
+	ProxyURL         string `json:"proxy_url" default:"" description:"代理前缀，如 https://cors.eu.org/"`
 }
 
 var config = driver.Config{
