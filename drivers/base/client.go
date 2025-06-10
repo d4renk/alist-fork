@@ -3,6 +3,7 @@ package base
 import (
 	"crypto/tls"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/alist-org/alist/v3/internal/conf"
@@ -26,8 +27,21 @@ func InitClient() {
 	).SetTLSClientConfig(&tls.Config{InsecureSkipVerify: conf.Conf.TlsInsecureSkipVerify})
 	NoRedirectClient.SetHeader("user-agent", UserAgent)
 
+	// 设置代理
+	setRestyProxy(NoRedirectClient)
+
 	RestyClient = NewRestyClient()
 	HttpClient = net.NewHttpClient()
+}
+
+func setRestyProxy(client *resty.Client) {
+	proxy := conf.Conf.Proxy
+	if proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err == nil {
+			client.SetProxy(proxyURL.String())
+		}
+	}
 }
 
 func NewRestyClient() *resty.Client {
@@ -37,5 +51,6 @@ func NewRestyClient() *resty.Client {
 		SetRetryResetReaders(true).
 		SetTimeout(DefaultTimeout).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: conf.Conf.TlsInsecureSkipVerify})
+	setRestyProxy(client)
 	return client
 }

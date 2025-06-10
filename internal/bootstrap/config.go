@@ -64,6 +64,37 @@ func InitConfig() {
 			log.Fatalf("update config struct error: %+v", err)
 		}
 	}
+
+	// 代理配置优先级：config.json > PROXY > HTTP_PROXY > HTTPS_PROXY > 小写
+	proxy := conf.Conf.Proxy
+	if proxy == "" {
+		proxy = os.Getenv("PROXY")
+	}
+	if proxy == "" {
+		proxy = os.Getenv("HTTP_PROXY")
+	}
+	if proxy == "" {
+		proxy = os.Getenv("HTTPS_PROXY")
+	}
+	if proxy == "" {
+		proxy = os.Getenv("proxy")
+	}
+	if proxy == "" {
+		proxy = os.Getenv("http_proxy")
+	}
+	if proxy == "" {
+		proxy = os.Getenv("https_proxy")
+	}
+	conf.Conf.Proxy = proxy
+
+	if proxy != "" {
+		log.Infof("[proxy] using proxy: %s", proxy)
+		println("[proxy] using proxy:", proxy)
+	} else {
+		log.Infof("[proxy] no proxy configured")
+		println("[proxy] no proxy configured")
+	}
+
 	if conf.Conf.MaxConcurrency > 0 {
 		net.DefaultConcurrencyLimit = &net.ConcurrencyLimit{Limit: conf.Conf.MaxConcurrency}
 	}

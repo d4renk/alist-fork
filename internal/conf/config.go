@@ -116,6 +116,7 @@ type Config struct {
 	FTP                   FTP         `json:"ftp" envPrefix:"FTP_"`
 	SFTP                  SFTP        `json:"sftp" envPrefix:"SFTP_"`
 	LastLaunchedVersion   string      `json:"last_launched_version"`
+	Proxy                 string      `json:"proxy" env:"PROXY"`
 }
 
 func DefaultConfig() *Config {
@@ -213,5 +214,6 @@ func DefaultConfig() *Config {
 			Listen: ":5222",
 		},
 		LastLaunchedVersion: "",
+		Proxy:               "",
 	}
 }

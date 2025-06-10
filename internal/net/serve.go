@@ -9,6 +9,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -279,10 +280,21 @@ func HttpClient() *http.Client {
 }
 
 func NewHttpClient() *http.Client {
+	var proxyFunc func(*http.Request) (*url.URL, error)
+	if conf.Conf.Proxy != "" {
+		proxyURL, err := url.Parse(conf.Conf.Proxy)
+		if err == nil {
+			proxyFunc = http.ProxyURL(proxyURL)
+		} else {
+			proxyFunc = http.ProxyFromEnvironment
+		}
+	} else {
+		proxyFunc = http.ProxyFromEnvironment
+	}
 	return &http.Client{
 		Timeout: time.Hour * 48,
 		Transport: &http.Transport{
-			Proxy:           http.ProxyFromEnvironment,
+			Proxy:           proxyFunc,
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: conf.Conf.TlsInsecureSkipVerify},
 		},
 	}
