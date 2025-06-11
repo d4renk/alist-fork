@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -167,7 +168,28 @@ func (d *PikPak) refreshToken(refreshToken string) error {
 	return nil
 }
 
-func (d *PikPak) request(url string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
+func (d *PikPak) request(urlStr string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
+	// 判断是否需要代理
+	if d.Addition.ProxyURL != "" {
+		u, err := url.Parse(urlStr)
+		if err == nil && !strings.Contains(u.Host, "dl") {
+			proxyURL := strings.TrimRight(d.Addition.ProxyURL, "/") + "/" + urlStr
+			if d.Addition.ProxyHostIP != "" {
+				pu, err := url.Parse(proxyURL)
+				if err == nil {
+					origHost := pu.Host
+					pu.Host = d.Addition.ProxyHostIP
+					urlStr = pu.String()
+					req := base.RestyClient.R()
+					req.SetHeader("Host", origHost)
+				} else {
+					urlStr = proxyURL
+				}
+			} else {
+				urlStr = proxyURL
+			}
+		}
+	}
 	req := base.RestyClient.R()
 	req.SetHeaders(map[string]string{
 		//"Authorization":   "Bearer " + d.AccessToken,
@@ -187,7 +209,7 @@ func (d *PikPak) request(url string, method string, callback base.ReqCallback, r
 	}
 	var e ErrResp
 	req.SetError(&e)
-	res, err := req.Execute(method, url)
+	res, err := req.Execute(method, urlStr)
 	if err != nil {
 		return nil, err
 	}
@@ -200,12 +222,12 @@ func (d *PikPak) request(url string, method string, callback base.ReqCallback, r
 		if err1 := d.refreshToken(d.RefreshToken); err1 != nil {
 			return nil, err1
 		}
-		return d.request(url, method, callback, resp)
+		return d.request(urlStr, method, callback, resp)
 	case 9: // 验证码token过期
-		if err = d.RefreshCaptchaTokenAtLogin(GetAction(method, url), d.GetUserID()); err != nil {
+		if err = d.RefreshCaptchaTokenAtLogin(GetAction(method, urlStr), d.GetUserID()); err != nil {
 			return nil, err
 		}
-		return d.request(url, method, callback, resp)
+		return d.request(urlStr, method, callback, resp)
 	case 10: // 操作频繁
 		return nil, errors.New(e.ErrorDescription)
 	default:
