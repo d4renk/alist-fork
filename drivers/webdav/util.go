@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 
 	"github.com/alist-org/alist/v3/drivers/webdav/odrvcookie"
+	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/model"
 	"github.com/alist-org/alist/v3/pkg/gowebdav"
 )
@@ -18,8 +20,22 @@ func (d *WebDav) isSharepoint() bool {
 
 func (d *WebDav) setClient() error {
 	c := gowebdav.NewClient(d.Address, d.Username, d.Password)
+
+	// 设置代理，优先使用conf.Conf.Proxy
+	var proxyFunc func(*http.Request) (*url.URL, error)
+	if conf.Conf.Proxy != "" {
+		proxyURL, err := url.Parse(conf.Conf.Proxy)
+		if err == nil {
+			proxyFunc = http.ProxyURL(proxyURL)
+		} else {
+			proxyFunc = http.ProxyFromEnvironment
+		}
+	} else {
+		proxyFunc = http.ProxyFromEnvironment
+	}
+
 	c.SetTransport(&http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
+		Proxy:           proxyFunc,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: d.TlsInsecureSkipVerify},
 	})
 	if d.isSharepoint() {
