@@ -15,6 +15,17 @@ func LoadStorages() {
 	if err != nil {
 		utils.Log.Fatalf("failed get enabled storages: %+v", err)
 	}
+	// 强制crypt驱动最后加载
+	var crypts []model.Storage
+	var others []model.Storage
+	for _, s := range storages {
+		if s.Driver == "Crypt" {
+			crypts = append(crypts, s)
+		} else {
+			others = append(others, s)
+		}
+	}
+	finalOrder := append(others, crypts...)
 	go func(storages []model.Storage) {
 		for i := range storages {
 			err := op.LoadStorage(context.Background(), storages[i])
@@ -26,5 +37,5 @@ func LoadStorages() {
 			}
 		}
 		conf.StoragesLoaded = true
-	}(storages)
+	}(finalOrder)
 }
